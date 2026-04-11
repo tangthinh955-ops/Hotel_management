@@ -1,0 +1,5 @@
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+.card { border: none; border-radius: 10px; transition: transform 0.2s, box-shadow 0.2s; }
+.card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+.table-hover tbody tr:hover td { background-color: #cff4fc !important; cursor: pointer; transition: background-color 0.2s; }
+.navbar-brand { font-weight: bold; letter-spacing: 1px; }

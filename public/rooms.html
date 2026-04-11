@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><title>Quản Lý Phòng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">🏨 HOTEL ADMIN</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="index.html">Tổng quan</a>
+                <a class="nav-link active" href="rooms.html">Phòng</a>
+                <a class="nav-link" href="customers.html">Khách hàng</a>
+                <a class="nav-link" href="bookings.html">Đặt phòng</a>
+            </div>
+        </div>
+    </nav>
+<div class="container">
+    <button onclick="history.back()" class="btn btn-outline-secondary mb-3">&larr; Quay lại</button>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm">
+                <h5>Thêm Phòng Mới</h5>
+                <form onsubmit="addRoom(event)">
+                    <input type="text" id="roomNumber" class="form-control mb-2" placeholder="Số phòng (Ví dụ: 101)" required>
+                    <select id="type" class="form-select mb-2"><option value="Single">Single</option><option value="Double">Double</option><option value="Suite">Suite</option></select>
+                    <input type="number" id="price" class="form-control mb-2" placeholder="Giá tiền" required>
+                    <button class="btn btn-primary w-100">Lưu Phòng</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <table class="table table-hover bg-white shadow-sm">
+                <thead class="table-dark"><tr><th>Số Phòng</th><th>Loại</th><th>Giá</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+                <tbody id="room-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="main.js"></script>
+</body>
+</html>
