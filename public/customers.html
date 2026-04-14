@@ -18,7 +18,10 @@
     </nav>
 <div class="container mx-auto px-4">
     <button onclick="history.back()" class="btn-secondary mb-4">&larr; Quay lại</button>
-    
+    <div class="mb-4">
+    <input type="text" id="searchCustomer" class="form-input" placeholder="🔍 Nhập tên khách hàng để tìm kiếm..." oninput="handleSearchCustomer(event)">
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-1">
             <div class="card mb-6 lg:mb-0">
