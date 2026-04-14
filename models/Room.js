@@ -5,7 +5,8 @@ const roomSchema = new mongoose.Schema({
         type: String, 
         required: true, 
         unique: true,
-        trim: true // Tự động xóa khoảng trắng thừa ở hai đầu
+        trim: true, // Tự động xóa khoảng trắng thừa ở hai đầu
+        match: [/^[a-zA-Z0-9]+$/, 'Số phòng chỉ được chứa chữ cái và số, không chứa kí tự lạ']
     },
     type: { 
         type: String, 

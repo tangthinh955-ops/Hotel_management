@@ -2,9 +2,18 @@
   "name": "hotel_management",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js",
+    "tailwind:watch": "tailwindcss -i ./public/style.css -o ./public/output.css --watch",
+    "tailwind:build": "tailwindcss -i ./public/style.css -o ./public/output.css --minify"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "mongoose": "^9.4.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
   }
 }

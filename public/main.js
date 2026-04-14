@@ -27,12 +27,12 @@ async function loadRooms() {
     const data = await fetch(`${API_URL}/rooms/all`).then(res => res.json());
     const tbody = document.getElementById('room-table-body');
     tbody.innerHTML = data.map(r => `
-        <tr>
-            <td>${r.roomNumber}</td>
-            <td>${r.type}</td>
-            <td>${r.price.toLocaleString()} VNĐ</td>
-            <td><span class="badge ${r.status === 'Available' ? 'bg-success' : 'bg-danger'}">${r.status}</span></td>
-            <td><button class="btn btn-sm btn-outline-danger" onclick="deleteItem('rooms', '${r._id}')">Xóa</button></td>
+        <tr class="tr-hover">
+            <td class="td-cell">${r.roomNumber}</td>
+            <td class="td-cell">${r.type}</td>
+            <td class="td-cell">${r.price.toLocaleString()} VNĐ</td>
+            <td class="td-cell"><span class="${r.status === 'Available' ? 'badge-success' : 'badge-danger'}">${r.status}</span></td>
+            <td class="td-cell"><button class="btn-danger-outline" onclick="deleteItem('rooms', '${r._id}')">Xóa</button></td>
         </tr>
     `).join('');
 }
@@ -63,11 +63,11 @@ async function loadCustomers() {
     const data = await fetch(`${API_URL}/customers/all`).then(res => res.json());
     const tbody = document.getElementById('customer-table-body');
     tbody.innerHTML = data.map(c => `
-        <tr>
-            <td>${c.name}</td>
-            <td>${c.email}</td>
-            <td>${c.phone}</td>
-            <td><button class="btn btn-sm btn-outline-danger" onclick="deleteItem('customers', '${c._id}')">Xóa</button></td>
+        <tr class="tr-hover">
+            <td class="td-cell">${c.name}</td>
+            <td class="td-cell">${c.email}</td>
+            <td class="td-cell">${c.phone}</td>
+            <td class="td-cell"><button class="btn-danger-outline" onclick="deleteItem('customers', '${c._id}')">Xóa</button></td>
         </tr>
     `).join('');
 }
@@ -98,12 +98,12 @@ async function loadBookings() {
     const data = await fetch(`${API_URL}/bookings/all`).then(res => res.json());
     const tbody = document.getElementById('booking-table-body');
     tbody.innerHTML = data.map(b => `
-        <tr>
-            <td>${b.roomId?.roomNumber || 'N/A'}</td>
-            <td>${b.customerId?.name || 'N/A'}</td>
-            <td>${new Date(b.checkInDate).toLocaleDateString()}</td>
-            <td>${new Date(b.checkOutDate).toLocaleDateString()}</td>
-            <td><button class="btn btn-sm btn-danger" onclick="deleteItem('bookings', '${b._id}')">Hủy Đặt</button></td>
+        <tr class="tr-hover">
+            <td class="td-cell">${b.roomId?.roomNumber || 'N/A'}</td>
+            <td class="td-cell">${b.customerId?.name || 'N/A'}</td>
+            <td class="td-cell">${new Date(b.checkInDate).toLocaleDateString()}</td>
+            <td class="td-cell">${new Date(b.checkOutDate).toLocaleDateString()}</td>
+            <td class="td-cell"><button class="btn-danger" onclick="deleteItem('bookings', '${b._id}')">Hủy Đặt</button></td>
         </tr>
     `).join('');
 }
@@ -119,15 +119,55 @@ async function prepareBookingForm() {
 
     const custSelect = document.getElementById('customerId');
     custSelect.innerHTML = customers.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
+
+    // Thiết lập giới hạn chọn ngày trên giao diện
+    const checkInInput = document.getElementById('checkInDate');
+    const checkOutInput = document.getElementById('checkOutDate');
+    
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    checkInInput.min = todayStr; // Vô hiệu hóa các ngày quá khứ trong lịch
+    
+    // Tự động cập nhật min của checkOutDate khi checkInDate thay đổi
+    checkInInput.addEventListener('change', () => {
+        if (checkInInput.value) {
+            const checkInDate = new Date(checkInInput.value);
+            checkInDate.setDate(checkInDate.getDate() + 1); // Cộng thêm 1 ngày
+            checkOutInput.min = `${checkInDate.getFullYear()}-${String(checkInDate.getMonth() + 1).padStart(2, '0')}-${String(checkInDate.getDate()).padStart(2, '0')}`;
+        }
+    });
 }
 
 async function createBooking(event) {
     event.preventDefault();
+    
+    const checkInValue = document.getElementById('checkInDate').value;
+    const checkOutValue = document.getElementById('checkOutDate').value;
+
+    if (!checkInValue || !checkOutValue) {
+        alert("Lỗi: Vui lòng chọn đầy đủ ngày nhận và ngày trả phòng!");
+        return; // Dừng không cho chạy tiếp lệnh tạo form
+    }
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    if (checkInValue < todayStr) {
+        alert("Lỗi: Ngày nhận phòng không được ở trong quá khứ!");
+        return; 
+    }
+
+    if (checkOutValue <= checkInValue) {
+        alert("Lỗi: Ngày trả phòng phải lớn hơn ngày nhận phòng ít nhất 1 ngày!");
+        return; 
+    }
+
     const payload = {
         roomId: document.getElementById('roomId').value,
         customerId: document.getElementById('customerId').value,
-        checkInDate: document.getElementById('checkInDate').value,
-        checkOutDate: document.getElementById('checkOutDate').value
+        checkInDate: checkInValue,
+        checkOutDate: checkOutValue
     };
     const res = await fetch(`${API_URL}/bookings/create`, {
         method: 'POST',

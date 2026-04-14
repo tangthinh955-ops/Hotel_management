@@ -2,49 +2,48 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"><title>Quản Lý Khách Hàng</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="output.css">
 </head>
-<body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="index.html">🏨 HOTEL ADMIN</a>
-            <div class="navbar-nav">
+<body class="bg-gray-100 text-gray-800">
+    <nav class="navbar">
+        <div class="nav-container">
+            <a class="nav-brand" href="index.html">🏨 HOTEL ADMIN</a>
+            <div class="flex space-x-2 md:space-x-4">
                 <a class="nav-link" href="index.html">Tổng quan</a>
                 <a class="nav-link" href="rooms.html">Phòng</a>
-                <a class="nav-link active" href="customers.html">Khách hàng</a>
+                <a class="nav-link-active" href="customers.html">Khách hàng</a>
                 <a class="nav-link" href="bookings.html">Đặt phòng</a>
             </div>
         </div>
     </nav>
-<div class="container">
-    <button onclick="history.back()" class="btn btn-outline-secondary mb-3">&larr; Quay lại</button>
+<div class="container mx-auto px-4">
+    <button onclick="history.back()" class="btn-secondary mb-4">&larr; Quay lại</button>
     
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card p-4 shadow-sm mb-4">
-                <h5 class="mb-3">Thêm Khách Hàng</h5>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1">
+            <div class="card mb-6 lg:mb-0">
+                <h5 class="text-lg font-bold mb-4 text-gray-700">Thêm Khách Hàng</h5>
                 <form onsubmit="addCustomer(event)">
-                    <input type="text" id="name" class="form-control mb-3" placeholder="Tên khách hàng" required>
-                    <input type="email" id="email" class="form-control mb-3" placeholder="Email" required>
-                    <input type="text" id="phone" class="form-control mb-3" placeholder="Số điện thoại" required>
-                    <button class="btn btn-success w-100">Đăng Ký Khách</button>
+                    <input type="text" id="name" class="form-input mb-3" placeholder="Tên khách hàng" pattern="[a-zA-ZÀ-ỹ\s]+" title="Chỉ cho phép chữ cái và dấu cách, không chứa emoji/kí tự lạ" required>
+                    <input type="email" id="email" class="form-input mb-3" placeholder="Email (@gmail.com)" pattern="[\w\.-]+@gmail\.com" title="Vui lòng nhập đúng định dạng đuôi @gmail.com" required>
+                    <input type="text" id="phone" class="form-input mb-4" placeholder="Số điện thoại" pattern="\d+" title="Số điện thoại chỉ được chứa các chữ số" required>
+                    <button class="btn-success">Đăng Ký Khách</button>
                 </form>
             </div>
         </div>
         
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <table class="table table-hover mb-0">
-                    <thead class="table-dark">
+        <div class="lg:col-span-2">
+            <div class="table-container">
+                <table class="table-main">
+                    <thead class="table-head">
                         <tr>
-                            <th>Tên Khách Hàng</th>
-                            <th>Email</th>
-                            <th>Số Điện Thoại</th>
-                            <th>Hành Động</th>
+                            <th class="th-cell">Tên Khách Hàng</th>
+                            <th class="th-cell">Email</th>
+                            <th class="th-cell">Số Điện Thoại</th>
+                            <th class="th-cell">Hành Động</th>
                         </tr>
                     </thead>
-                    <tbody id="customer-table-body"></tbody>
+                    <tbody id="customer-table-body" class="divide-y divide-gray-200"></tbody>
                 </table>
             </div>
         </div>
