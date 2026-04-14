@@ -37,4 +37,12 @@
   /* Badges */
   .badge-success { @apply px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800; }
   .badge-danger { @apply px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800; }
+
+  /* Modals */
+  .modal-overlay { @apply fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 transition-opacity; }
+  .modal-card { @apply bg-white rounded-lg shadow-xl w-11/12 max-w-lg max-h-[85vh] flex flex-col; }
+  .modal-header { @apply flex justify-between items-center border-b border-gray-200 px-6 py-4; }
+  .modal-body { @apply px-6 py-4 overflow-y-auto flex-grow; }
+  .modal-footer { @apply border-t border-gray-200 px-6 py-4 flex justify-end bg-gray-50 rounded-b-lg; }
+  .history-card { @apply mb-3 p-4 border border-gray-200 rounded-md bg-white shadow-sm hover:shadow transition-shadow; }
 }

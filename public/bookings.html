@@ -19,40 +19,32 @@
             </div>
         </div>
     </nav>
-    <div class="container mx-auto px-4">
-        <button onclick="history.back()" class="btn-secondary mb-4">&larr; Quay lại</button>
 
-        <div class="card mb-6">
-            <h5 class="text-lg font-bold mb-4 text-gray-700">Tạo Đơn Đặt Phòng Mới</h5>
-            <form onsubmit="createBooking(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div><label class="form-label">Chọn Khách</label><select id="customerId" class="form-input"></select>
-                </div>
-                <div><label class="form-label">Chọn Phòng Trống</label><select id="roomId" class="form-input"></select>
-                </div>
-                <div><label class="form-label">Ngày Đến</label><input type="date" id="checkInDate"
-                        class="form-input bg-white" required></div>
-                <div><label class="form-label">Ngày Đi</label><input type="date" id="checkOutDate"
-                        class="form-input bg-white" required></div>
-                <div class="md:col-span-4 flex justify-end mt-2"><button class="btn-warning">Xác Nhận Đặt Phòng</button>
-                </div>
-            </form>
-        </div>
-        <div class="table-container mb-8">
-            <table class="table-main">
-                <thead class="table-head">
-                    <tr>
-                        <th class="th-cell">Phòng</th>
-                        <th class="th-cell">Khách Hàng</th>
-                        <th class="th-cell">Ngày Đến</th>
-                        <th class="th-cell">Ngày Đi</th>
-                        <th class="th-cell">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="booking-table-body" class="divide-y divide-gray-200"></tbody>
-            </table>
-        </div>
+<div class="container mx-auto px-4">
+    <button onclick="history.back()" class="btn-secondary mb-4">&larr; Quay lại</button>
+    
+    <div class="card mb-6">
+        <h5 class="text-lg font-bold mb-4 text-gray-700">Tạo Đơn Đặt Phòng Mới</h5>
+        <form onsubmit="createBooking(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div><label class="form-label">Chọn Khách</label><select id="customerId" class="form-input"></select></div>
+            <div><label class="form-label">Chọn Phòng Trống</label><select id="roomId" class="form-input"></select></div>
+            <div><label class="form-label">Ngày Đến</label><input type="date" id="checkInDate" class="form-input bg-white" required></div>
+            <div><label class="form-label">Ngày Đi</label><input type="date" id="checkOutDate" class="form-input bg-white" required></div>
+            <div class="md:col-span-4 flex items-center mt-4" style="justify-content: space-between;">
+                <span id="estimatedCost" class="text-lg font-bold text-green-600">Tạm tính: 0 VNĐ</span>
+                <button class="btn-warning">Xác Nhận Đặt Phòng</button>
+            </div>
+        </form>
     </div>
-    <script src="main.js"></script>
+    <div class="table-container mb-8">
+        <table class="table-main">
+            <thead class="table-head"><tr><th class="th-cell">Phòng</th><th class="th-cell">Khách Hàng</th><th class="th-cell">Ngày Đến</th><th class="th-cell">Ngày Đi</th><th class="th-cell">Tổng Tiền</th><th class="th-cell">Hành động</th></tr></thead>
+            <tbody id="booking-table-body" class="divide-y divide-gray-200"></tbody>
+        </table>
+    </div>
+</div>
+<script src="main.js"></script>
+   
 </body>
 
 </html>
