@@ -12,14 +12,177 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- LOGIC TRANG CHỦ (STATS) ---
+let globalBookings = []; // Biến cache dữ liệu để dùng cho bộ lọc biểu đồ
+
 async function loadStats() {
     const rooms = await fetch(`${API_URL}/rooms/all`).then(res => res.json());
     const customers = await fetch(`${API_URL}/customers/all`).then(res => res.json());
     const bookings = await fetch(`${API_URL}/bookings/all`).then(res => res.json());
+    globalBookings = bookings; // Lưu lại để dùng khi đổi bộ lọc
 
     document.getElementById('total-rooms').innerText = rooms.length;
     document.getElementById('total-customers').innerText = customers.length;
     document.getElementById('active-bookings').innerText = bookings.length;
+
+    // Tính tổng doanh thu của tháng hiện tại và gán lên giao diện
+    const monthlyChartData = calculateMonthlyRevenue(bookings, 0); // Lấy mảng tiền của các ngày trong tháng này
+    const totalMonthlyRevenue = monthlyChartData.data.reduce((sum, val) => sum + val, 0); // Cộng dồn
+    document.getElementById('monthly-revenue').innerText = totalMonthlyRevenue.toLocaleString() + 'đ';
+
+    renderCharts(rooms, bookings);
+}
+
+let roomChartInstance = null;
+let revenueChartInstance = null;
+
+// Hàm Helper: Tính doanh thu 7 ngày qua
+function calculate7DaysRevenue(bookings) {
+    const labels = [];
+    const data = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Đưa về 0h00 để so sánh cho chuẩn
+
+    // Lùi về 7 ngày trước để tạo nhãn và tính doanh thu
+    for (let i = 6; i >= 0; i--) {
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() - i);
+        
+        // Format DD/MM
+        const dd = String(targetDate.getDate()).padStart(2, '0');
+        const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+        labels.push(`${dd}/${mm}`);
+
+        // Tính tổng tiền các đơn đặt phòng có Check-in vào ngày này
+        let dailyRevenue = 0;
+        bookings.forEach(b => {
+            if (!b.roomId || !b.checkInDate || !b.checkOutDate) return;
+            
+            const checkIn = new Date(b.checkInDate);
+            checkIn.setHours(0, 0, 0, 0);
+            
+            if (checkIn.getTime() === targetDate.getTime()) {
+                const checkOut = new Date(b.checkOutDate);
+                checkOut.setHours(0, 0, 0, 0); // Đưa cả checkOut về 0h để đồng bộ
+                const days = Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24)); // Dùng Math.round để an toàn tuyệt đối
+                if (days > 0) dailyRevenue += days * (b.roomId.price || 0);
+            }
+        });
+        data.push(dailyRevenue);
+    }
+    return { labels, data };
+}
+
+// Hàm Helper: Tính doanh thu theo từng ngày trong tháng
+function calculateMonthlyRevenue(bookings, monthOffset = 0) {
+    const labels = [];
+    const data = [];
+    
+    // Sửa lỗi ngầm JS Date: Nếu hôm nay là ngày 31, lùi về 1 tháng (tháng có 30 ngày) sẽ bị lỗi tràn ngày làm sai tháng.
+    // Khắc phục: Ép ngày hiện tại về mùng 1 trước khi tính toán tháng.
+    const today = new Date();
+    const targetDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth();
+    
+    const daysInMonth = new Date(year, month + 1, 0).getDate(); // Lấy số ngày của tháng đang xét
+    
+    for (let i = 1; i <= daysInMonth; i++) {
+        labels.push(`${i}/${month + 1}`);
+        
+        let dailyRevenue = 0;
+        bookings.forEach(b => {
+            if (!b.roomId || !b.checkInDate || !b.checkOutDate) return;
+            
+            const checkIn = new Date(b.checkInDate);
+            if (checkIn.getFullYear() === year && checkIn.getMonth() === month && checkIn.getDate() === i) {
+                checkIn.setHours(0, 0, 0, 0); // Đưa về 0h
+                const checkOut = new Date(b.checkOutDate);
+                checkOut.setHours(0, 0, 0, 0); // Đưa về 0h
+                const days = Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+                if (days > 0) dailyRevenue += days * (b.roomId.price || 0);
+            }
+        });
+        data.push(dailyRevenue);
+    }
+    return { labels, data };
+}
+
+// Hàm chạy khi thay đổi Dropdown "Bộ Lọc" trên giao diện
+function updateRevenueChart() {
+    if (!revenueChartInstance) return;
+    
+    const filterValue = document.getElementById('revenueFilter').value;
+    let chartData = filterValue === 'thisMonth' ? calculateMonthlyRevenue(globalBookings, 0)
+                  : filterValue === 'lastMonth' ? calculateMonthlyRevenue(globalBookings, -1)
+                  : calculate7DaysRevenue(globalBookings);
+
+    revenueChartInstance.data.labels = chartData.labels; // Cập nhật lại số cột ngày
+    revenueChartInstance.data.datasets[0].data = chartData.data; // Cập nhật lại tiền
+    revenueChartInstance.update(); // Load hiệu ứng mượt
+}
+
+function renderCharts(rooms, bookings) {
+    // 1. BIỂU ĐỒ TRÒN - Tỷ lệ phòng Trống / Đang có khách
+    const ctxRoom = document.getElementById('roomStatusChart');
+    if (ctxRoom) {
+        const availableCount = rooms.filter(r => r.status === 'Available').length;
+        const bookedCount = rooms.filter(r => r.status === 'Booked').length;
+
+        if (roomChartInstance) roomChartInstance.destroy(); // Hủy chart cũ nếu bị re-render
+        roomChartInstance = new Chart(ctxRoom, {
+            type: 'pie',
+            data: {
+                labels: ['Phòng Trống (Available)', 'Đang có khách (Booked)'],
+                datasets: [{
+                    data: [availableCount, bookedCount],
+                    backgroundColor: ['#10B981', '#EF4444'], // Xanh lá và Đỏ
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: 'Tỷ lệ trạng thái phòng', font: { size: 16 } }
+                }
+            }
+        });
+    }
+
+    // 2. BIỂU ĐỒ CỘT - Doanh thu 7 ngày gần nhất
+    const ctxRev = document.getElementById('revenueChart');
+    if (ctxRev) {
+        // 1. Lấy mảng labels và data từ hàm helper
+        const { labels, data } = calculate7DaysRevenue(bookings);
+
+        if (revenueChartInstance) revenueChartInstance.destroy();
+        revenueChartInstance = new Chart(ctxRev, {
+            type: 'bar',
+            data: {
+                labels: labels, // 2. Gán mảng nhãn thời gian vào trục X
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: data,     // 3. Gán mảng giá trị vào trục Y
+                    backgroundColor: '#3B82F6', // Xanh dương
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: false }, // Đã có HTML title h3 ở trên rồi nên ta ẩn cái này đi cho gọn
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        // Đặt suggestedMax để giới hạn cao của trục Y không bao giờ bị tụt xuống thấp hơn mức này
+                        suggestedMax: 5000000 // Ví dụ: 5.000.000 VNĐ, bạn có thể chỉnh sửa lại số này
+                    }
+                }
+            }
+        });
+    }
 }
 
 // --- LOGIC PHÒNG (ROOMS) ---
@@ -136,7 +299,9 @@ async function viewCustomerHistory(customerId) {
             const roomName = b.roomId ? `Phòng ${b.roomId.roomNumber} (${b.roomId.type})` : 'Phòng đã bị xóa';
             
             // Tính toán tiền
-            const days = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+            checkInDate.setHours(0, 0, 0, 0);
+            checkOutDate.setHours(0, 0, 0, 0);
+            const days = Math.round((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
             const price = b.roomId?.price || 0;
             const total = days > 0 ? days * price : 0;
 
@@ -241,7 +406,9 @@ function calculateEstimatedCost() {
 
     const checkIn = new Date(checkInInput);
     const checkOut = new Date(checkOutInput);
-    const days = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+    checkIn.setHours(0, 0, 0, 0);
+    checkOut.setHours(0, 0, 0, 0);
+    const days = Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24));
 
     if (days > 0) {
         const selectedOption = roomSelect.options[roomSelect.selectedIndex];
