@@ -7,7 +7,22 @@ if (!localStorage.getItem('token')) {
     window.location.href = 'login.html';
 }
 
+// ==========================================
+// XỬ LÝ ĐĂNG XUẤT
+// ==========================================
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
+    window.location.href = 'login.html';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Hiển thị email user đang đăng nhập lên Navbar
+    const emailSpan = document.getElementById('user-email');
+    if (emailSpan) {
+        emailSpan.innerText = localStorage.getItem('userEmail') || 'Admin';
+    }
+
     // Tự động kiểm tra xem đang ở trang nào để load dữ liệu
     if (document.getElementById('stats-container')) loadStats();
     if (document.getElementById('room-table-body')) loadRooms();

@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 errorDiv.style.display = 'none';
                 localStorage.setItem('token', data.token);
+                localStorage.setItem('userEmail', email); // Lưu lại email để hiển thị lên Navbar
                 window.location.href = 'index.html';
             }
         } catch (error) {
