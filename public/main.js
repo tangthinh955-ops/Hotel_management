@@ -1,5 +1,12 @@
 const API_URL = 'http://localhost:3000/api';
 
+// ==========================================
+// KIỂM TRA ĐĂNG NHẬP (BẢO VỆ FRONTEND)
+// ==========================================
+if (!localStorage.getItem('token')) {
+    window.location.href = 'login.html';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Tự động kiểm tra xem đang ở trang nào để load dữ liệu
     if (document.getElementById('stats-container')) loadStats();
