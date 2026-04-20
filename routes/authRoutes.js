@@ -6,6 +6,31 @@ import User from '../models/User.js';
 const router = express.Router();
 const JWT_SECRET = 'my_super_secret_key_123'; // Nên đặt trong file .env cho dự án thực tế
 
+// Đăng ký tài khoản mới
+router.post('/register', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Kiểm tra xem email đã tồn tại chưa
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Email này đã được sử dụng!' });
+        }
+
+        // Mã hóa mật khẩu
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Tạo user mới (mặc định cho role là admin để bạn dễ test)
+        const newUser = new User({ email, password: hashedPassword, role: 'admin' });
+        await newUser.save();
+
+        res.status(201).json({ message: 'Đăng ký thành công!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+});
+
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
