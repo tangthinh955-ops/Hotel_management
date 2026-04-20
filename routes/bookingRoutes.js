@@ -49,6 +49,36 @@ router.post('/create', async (req, res) => {
     }
 });
 
+// Cập nhật đơn đặt phòng (Đổi phòng, đổi ngày, đổi khách)
+router.put('/update/:id', async (req, res) => {
+    try {
+        const { roomId, customerId, checkInDate, checkOutDate } = req.body;
+        
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({ message: "Không tìm thấy đơn đặt phòng" });
+
+        // Nếu người dùng chọn đổi sang một phòng MỚI khác với phòng cũ
+        if (roomId && (!booking.roomId || roomId !== booking.roomId.toString())) {
+            const newRoom = await Room.findById(roomId);
+            if (!newRoom) return res.status(404).json({ message: "Phòng mới không tồn tại" });
+            if (newRoom.status === 'Booked') return res.status(400).json({ message: "Phòng mới đã có người đặt!" });
+
+            if (booking.roomId) {
+                await Room.findByIdAndUpdate(booking.roomId, { status: 'Available' }); // Trả lại phòng cũ
+            }
+            newRoom.status = 'Booked'; // Đặt phòng mới
+            await newRoom.save();
+        }
+
+        // Cập nhật thông tin vào đơn
+        const updatedBooking = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+        res.status(200).json({ message: "Cập nhật đơn đặt thành công!", booking: updatedBooking });
+    } catch (error) {
+        res.status(500).json({ message: "Lỗi khi cập nhật đơn đặt", error: error.message });
+    }
+});
+
 // Hủy/Xóa đơn đặt phòng
 router.delete('/delete/:id', async (req, res) => {
     try {

@@ -217,7 +217,10 @@ async function loadRooms() {
             <td class="td-cell">${r.type}</td>
             <td class="td-cell">${r.price.toLocaleString()} VNĐ</td>
             <td class="td-cell"><span class="${r.status === 'Available' ? 'badge-success' : 'badge-danger'}">${r.status}</span></td>
-            <td class="td-cell"><button class="btn-danger-outline" onclick="deleteItem('rooms', '${r._id}')">Xóa</button></td>
+            <td class="td-cell space-x-2">
+                <button class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded text-sm transition-colors" onclick="editRoom('${r._id}', '${r.roomNumber}', '${r.type}', '${r.price}', '${r.status}')">Sửa</button>
+                <button class="btn-danger-outline" onclick="deleteItem('rooms', '${r._id}')">Xóa</button>
+            </td>
         </tr>
     `).join('');
 }
@@ -243,6 +246,68 @@ async function addRoom(event) {
     }
 }
 
+function editRoom(id, oldRoomNumber, oldType, oldPrice, oldStatus) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white p-6 rounded shadow-lg w-96">
+            <h2 class="text-xl font-bold mb-4">Sửa Thông Tin Phòng</h2>
+            <label class="block mb-1 text-sm font-semibold">Số phòng</label>
+            <input type="text" id="edit-room-number" value="${oldRoomNumber}" class="w-full border p-2 mb-3 rounded">
+            <label class="block mb-1 text-sm font-semibold">Loại phòng</label>
+            <select id="edit-room-type" class="w-full border p-2 mb-3 rounded">
+                <option value="Single" ${oldType === 'Single' ? 'selected' : ''}>Single</option>
+                <option value="Double" ${oldType === 'Double' ? 'selected' : ''}>Double</option>
+                <option value="Suite" ${oldType === 'Suite' ? 'selected' : ''}>Suite</option>
+            </select>
+            <label class="block mb-1 text-sm font-semibold">Giá phòng</label>
+            <input type="number" id="edit-room-price" value="${oldPrice}" class="w-full border p-2 mb-3 rounded">
+            <label class="block mb-1 text-sm font-semibold">Trạng thái</label>
+            <select id="edit-room-status" class="w-full border p-2 mb-4 rounded">
+                <option value="Available" ${oldStatus === 'Available' ? 'selected' : ''}>Available</option>
+                <option value="Booked" ${oldStatus === 'Booked' ? 'selected' : ''}>Booked</option>
+            </select>
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-edit-room" class="bg-gray-400 text-white px-4 py-2 rounded">Hủy</button>
+                <button id="save-edit-room" class="bg-blue-600 text-white px-4 py-2 rounded">Lưu</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const cancelBtn = modal.querySelector('#cancel-edit-room');
+    const saveBtn = modal.querySelector('#save-edit-room');
+
+    cancelBtn.onclick = () => modal.remove();
+    saveBtn.onclick = async () => {
+        saveBtn.disabled = true;
+        saveBtn.innerText = 'Đang lưu...';
+        try {
+            const payload = {
+                roomNumber: modal.querySelector('#edit-room-number').value,
+                type: modal.querySelector('#edit-room-type').value,
+                price: Number(modal.querySelector('#edit-room-price').value),
+                status: modal.querySelector('#edit-room-status').value
+            };
+            const res = await fetch(`${API_URL}/rooms/update/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            
+            if (res.ok) {
+                location.reload();
+            } else { 
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const err = await res.json(); alert(`Lỗi: ${err.message}`);
+                } else { alert(`Lỗi Server (Status ${res.status}): Không tìm thấy API. Bạn đã lưu file Backend và khởi động lại chưa?`); }
+                saveBtn.disabled = false; saveBtn.innerText = 'Lưu'; 
+            }
+        } catch (error) {
+            alert(`Lỗi kết nối: ${error.message}`);
+            saveBtn.disabled = false;
+            saveBtn.innerText = 'Lưu';
+        }
+    };
+}
+
 // --- LOGIC KHÁCH HÀNG (CUSTOMERS) ---
 async function loadCustomers(searchQuery = '') {
     const data = await fetch(`${API_URL}/customers/all`).then(res => res.json());
@@ -260,6 +325,7 @@ async function loadCustomers(searchQuery = '') {
             <td class="td-cell">${c.phone}</td>
             <td class="td-cell space-x-2">
                 <button class="btn-secondary" onclick="viewCustomerHistory('${c._id}')">Lịch Sử</button>
+                <button class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded text-sm transition-colors" onclick="editCustomer('${c._id}', '${c.name}', '${c.email}', '${c.phone}')">Sửa</button>
                 <button class="btn-danger-outline" onclick="deleteItem('customers', '${c._id}')">Xóa</button>
             </td>
         </tr>
@@ -285,6 +351,58 @@ async function addCustomer(event) {
         const errData = await res.json();
         alert(`Thất bại: ${errData.message}\nChi tiết: ${errData.error}`);
     }
+}
+
+function editCustomer(id, oldName, oldEmail, oldPhone) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white p-6 rounded shadow-lg w-96">
+            <h2 class="text-xl font-bold mb-4">Sửa Khách Hàng</h2>
+            <label class="block mb-1 text-sm font-semibold">Tên khách hàng</label>
+            <input type="text" id="edit-cus-name" value="${oldName}" class="w-full border p-2 mb-3 rounded">
+            <label class="block mb-1 text-sm font-semibold">Email</label>
+            <input type="email" id="edit-cus-email" value="${oldEmail}" class="w-full border p-2 mb-3 rounded">
+            <label class="block mb-1 text-sm font-semibold">Số điện thoại</label>
+            <input type="text" id="edit-cus-phone" value="${oldPhone}" class="w-full border p-2 mb-4 rounded">
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-edit-cus" class="bg-gray-400 text-white px-4 py-2 rounded">Hủy</button>
+                <button id="save-edit-cus" class="bg-blue-600 text-white px-4 py-2 rounded">Lưu</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const cancelBtn = modal.querySelector('#cancel-edit-cus');
+    const saveBtn = modal.querySelector('#save-edit-cus');
+
+    cancelBtn.onclick = () => modal.remove();
+    saveBtn.onclick = async () => {
+        saveBtn.disabled = true;
+        saveBtn.innerText = 'Đang lưu...';
+        try {
+            const payload = {
+                name: modal.querySelector('#edit-cus-name').value,
+                email: modal.querySelector('#edit-cus-email').value,
+                phone: modal.querySelector('#edit-cus-phone').value
+            };
+            const res = await fetch(`${API_URL}/customers/update/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            
+            if (res.ok) {
+                location.reload();
+            } else { 
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const err = await res.json(); alert(`Lỗi: ${err.message}`);
+                } else { alert(`Lỗi Server (Status ${res.status}): Không tìm thấy API. Bạn đã lưu file Backend và khởi động lại chưa?`); }
+                saveBtn.disabled = false; saveBtn.innerText = 'Lưu'; 
+            }
+        } catch (error) {
+            alert(`Lỗi kết nối: ${error.message}`);
+            saveBtn.disabled = false;
+            saveBtn.innerText = 'Lưu';
+        }
+    };
 }
 
 function handleSearchCustomer(event) {
@@ -373,9 +491,112 @@ async function loadBookings() {
             <td class="td-cell">${b.customerId?.name || 'N/A'}</td>
             <td class="td-cell">${new Date(b.checkInDate).toLocaleDateString()}</td>
             <td class="td-cell">${new Date(b.checkOutDate).toLocaleDateString()}</td>
-            <td class="td-cell"><button class="btn-danger" onclick="deleteItem('bookings', '${b._id}')">Hủy Đặt</button></td>
+            <td class="td-cell space-x-2">
+                <button class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded text-sm transition-colors" onclick="editBooking('${b._id}', '${b.roomId?._id || ''}', '${b.customerId?._id || ''}', '${b.checkInDate}', '${b.checkOutDate}')">Sửa</button>
+                <button class="btn-danger-outline" onclick="deleteItem('bookings', '${b._id}')">Hủy Đặt</button>
+            </td>
         </tr>
     `).join('');
+}
+
+async function editBooking(id, oldRoomId, oldCustomerId, oldCheckIn, oldCheckOut) {
+    const rooms = await fetch(`${API_URL}/rooms/all`).then(res => res.json());
+    const customers = await fetch(`${API_URL}/customers/all`).then(res => res.json());
+
+    const formatCheckIn = oldCheckIn ? new Date(oldCheckIn).toISOString().split('T')[0] : '';
+    const formatCheckOut = oldCheckOut ? new Date(oldCheckOut).toISOString().split('T')[0] : '';
+
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white p-6 rounded shadow-lg w-96">
+            <h2 class="text-xl font-bold mb-4">Sửa Đơn Đặt Phòng</h2>
+            <label class="block mb-1 text-sm font-semibold">Phòng</label>
+            <select id="edit-booking-room" class="w-full border p-2 mb-3 rounded">
+                ${rooms.filter(r => r.status === 'Available' || r._id === oldRoomId).map(r => `<option value="${r._id}" ${r._id === oldRoomId ? 'selected' : ''}>Phòng ${r.roomNumber} (${r.type})</option>`).join('')}
+            </select>
+            <label class="block mb-1 text-sm font-semibold">Khách Hàng</label>
+            <select id="edit-booking-customer" class="w-full border p-2 mb-3 rounded">
+                ${customers.map(c => `<option value="${c._id}" ${c._id === oldCustomerId ? 'selected' : ''}>${c.name} - ${c.phone}</option>`).join('')}
+            </select>
+            <label class="block mb-1 text-sm font-semibold">Ngày Nhận Phòng</label>
+            <input type="date" id="edit-booking-checkin" value="${formatCheckIn}" class="w-full border p-2 mb-3 rounded">
+            <label class="block mb-1 text-sm font-semibold">Ngày Trả Phòng</label>
+            <input type="date" id="edit-booking-checkout" value="${formatCheckOut}" class="w-full border p-2 mb-4 rounded">
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-edit-booking" class="bg-gray-400 text-white px-4 py-2 rounded">Hủy</button>
+                <button id="save-edit-booking" class="bg-blue-600 text-white px-4 py-2 rounded">Lưu</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const cancelBtn = modal.querySelector('#cancel-edit-booking');
+    const saveBtn = modal.querySelector('#save-edit-booking');
+
+    const checkInInput = modal.querySelector('#edit-booking-checkin');
+    const checkOutInput = modal.querySelector('#edit-booking-checkout');
+
+    // Khởi tạo giới hạn (min) cho ngày trả phòng khi mở Modal
+    if (checkInInput.value) {
+        const initCheckInDate = new Date(checkInInput.value);
+        initCheckInDate.setDate(initCheckInDate.getDate() + 1);
+        checkOutInput.min = initCheckInDate.toISOString().split('T')[0];
+    }
+
+    // Lắng nghe sự kiện: Tự động lùi ngày trả phòng nếu ngày nhận phòng bị thay đổi
+    checkInInput.addEventListener('change', () => {
+        if (checkInInput.value) {
+            const checkInDate = new Date(checkInInput.value);
+            checkInDate.setDate(checkInDate.getDate() + 1);
+            const minOut = checkInDate.toISOString().split('T')[0];
+            checkOutInput.min = minOut;
+            
+            // Nếu ngày trả hiện tại đang nhỏ hơn giới hạn cho phép, tự động ép bằng ngày min
+            if (checkOutInput.value && checkOutInput.value < minOut) {
+                checkOutInput.value = minOut;
+            }
+        }
+    });
+
+    cancelBtn.onclick = () => modal.remove();
+    saveBtn.onclick = async () => {
+        // Kiểm tra an toàn trước khi gọi API
+        if (!checkInInput.value || !checkOutInput.value) {
+            alert("Lỗi: Vui lòng chọn đầy đủ ngày nhận và trả phòng!");
+            return;
+        }
+        if (checkOutInput.value <= checkInInput.value) {
+            alert("Lỗi: Ngày trả phòng phải lớn hơn ngày nhận phòng ít nhất 1 ngày!");
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.innerText = 'Đang lưu...';
+        try {
+            const payload = {
+                roomId: modal.querySelector('#edit-booking-room').value,
+                customerId: modal.querySelector('#edit-booking-customer').value,
+                checkInDate: checkInInput.value,
+                checkOutDate: checkOutInput.value
+            };
+            const res = await fetch(`${API_URL}/bookings/update/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            
+            if (res.ok) {
+                location.reload();
+            } else { 
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const err = await res.json(); alert(`Lỗi: ${err.message}`);
+                } else { alert(`Lỗi Server (Status ${res.status}): Không tìm thấy API. Bạn đã lưu file Backend và khởi động lại chưa?`); }
+                saveBtn.disabled = false; saveBtn.innerText = 'Lưu'; 
+            }
+        } catch (error) {
+            alert(`Lỗi kết nối: ${error.message}`);
+            saveBtn.disabled = false;
+            saveBtn.innerText = 'Lưu';
+        }
+    };
 }
 
 async function prepareBookingForm() {
