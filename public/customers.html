@@ -57,7 +57,7 @@
                 <form onsubmit="addCustomer(event)">
                     <input type="text" id="name" class="form-input mb-3" placeholder="Tên khách hàng" pattern="[a-zA-ZÀ-ỹ\s]+" title="Chỉ cho phép chữ cái và dấu cách, không chứa emoji/kí tự lạ" required>
                     <input type="email" id="email" class="form-input mb-3" placeholder="Email (@gmail.com)" pattern="[\w\.-]+@gmail\.com" title="Vui lòng nhập đúng định dạng đuôi @gmail.com" required>
-                    <input type="text" id="phone" class="form-input mb-4" placeholder="Số điện thoại" pattern="\d+" title="Số điện thoại chỉ được chứa các chữ số" required>
+                    <input type="text" id="phone" class="form-input mb-4" placeholder="Số điện thoại" pattern="\d{10}" title="Số điện thoại phải bao gồm đúng 10 chữ số" required>
                     <button class="btn-success">Đăng Ký Khách</button>
                 </form>
             </div>
@@ -80,6 +80,7 @@
         </div>
     </div>
 </div>
+<script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>
 </body>
 </html>

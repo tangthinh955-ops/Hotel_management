@@ -8,6 +8,48 @@ if (!localStorage.getItem('token')) {
 }
 
 // ==========================================
+// CẤU HÌNH SOCKET.IO CLIENT & TOAST NOTIFICATION
+// ==========================================
+let socket;
+if (typeof io !== 'undefined') {
+    socket = io(); // Tự động kết nối tới domain/port hiện tại
+
+    socket.on('connect', () => {
+        console.log('🟢 Đã kết nối Socket.io Server!');
+    });
+
+    // Lắng nghe sự kiện có người đặt phòng mới
+    socket.on('new_booking_alert', (data) => {
+        showToast(`🔔 CÓ ĐƠN MỚI: Phòng ${data.roomNumber} vừa được khách hàng đặt thành công!`);
+        
+        // Nếu đang ở trang có thống kê/bảng, tự động load lại dữ liệu để cập nhật realtime
+        if (document.getElementById('stats-container')) loadStats();
+        if (document.getElementById('room-table-body')) loadRooms();
+        if (document.getElementById('booking-table-body')) loadBookings();
+    });
+} else {
+    console.warn('⚠️ Thư viện Socket.io chưa được load. Tính năng Realtime đang tạm tắt trên trang này.');
+}
+
+// Hàm hiển thị thông báo góc màn hình
+function showToast(message) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'bg-blue-600 text-white px-6 py-3 rounded shadow-lg transform transition-all duration-300 translate-x-0 flex items-center gap-2';
+    toast.innerHTML = `<span>${message}</span>`;
+    
+    container.appendChild(toast);
+
+    // Tự động ẩn sau 5 giây
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-full');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+// ==========================================
 // XỬ LÝ ĐĂNG XUẤT
 // ==========================================
 function logout() {
@@ -44,7 +86,7 @@ async function loadStats() {
 
     document.getElementById('total-rooms').innerText = rooms.length;
     document.getElementById('total-customers').innerText = customers.length;
-    document.getElementById('active-bookings').innerText = bookings.length;
+    document.getElementById('active-bookings').innerText = bookings.filter(b => b.status !== 'Canceled').length;
 
     // Tính tổng doanh thu của tháng hiện tại và gán lên giao diện
     const monthlyChartData = calculateMonthlyRevenue(bookings, 0); // Lấy mảng tiền của các ngày trong tháng này
@@ -77,7 +119,7 @@ function calculate7DaysRevenue(bookings) {
         // Tính tổng tiền các đơn đặt phòng có Check-in vào ngày này
         let dailyRevenue = 0;
         bookings.forEach(b => {
-            if (!b.roomId || !b.checkInDate || !b.checkOutDate) return;
+            if (!b.roomId || !b.checkInDate || !b.checkOutDate || b.status === 'Canceled') return;
             
             const checkIn = new Date(b.checkInDate);
             checkIn.setHours(0, 0, 0, 0);
@@ -114,7 +156,7 @@ function calculateMonthlyRevenue(bookings, monthOffset = 0) {
         
         let dailyRevenue = 0;
         bookings.forEach(b => {
-            if (!b.roomId || !b.checkInDate || !b.checkOutDate) return;
+            if (!b.roomId || !b.checkInDate || !b.checkOutDate || b.status === 'Canceled') return;
             
             const checkIn = new Date(b.checkInDate);
             if (checkIn.getFullYear() === year && checkIn.getMonth() === month && checkIn.getDate() === i) {
@@ -430,6 +472,11 @@ async function viewCustomerHistory(customerId) {
             return;
         }
 
+        // Tính toán thống kê lịch sử
+        const totalBookings = history.length;
+        const canceledBookings = history.filter(b => b.status === 'Canceled').length;
+        const successBookings = totalBookings - canceledBookings;
+
         const historyHtml = history.map((b, index) => {
             const checkInDate = new Date(b.checkInDate);
             const checkOutDate = new Date(b.checkOutDate);
@@ -443,11 +490,12 @@ async function viewCustomerHistory(customerId) {
             checkOutDate.setHours(0, 0, 0, 0);
             const days = Math.round((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
             const price = b.roomId?.price || 0;
-            const total = days > 0 ? days * price : 0;
+            const total = b.status === 'Canceled' ? 0 : (days > 0 ? days * price : 0);
+            const statusBadge = b.status === 'Canceled' ? '<span class="text-red-500 font-bold ml-2">[ĐÃ HỦY]</span>' : '<span class="text-green-500 font-bold ml-2">[THÀNH CÔNG]</span>';
 
             return `
-                <div class="history-card">
-                    <div class="font-bold text-blue-600 text-lg mb-2">${index + 1}. ${roomName}</div>
+                <div class="history-card ${b.status === 'Canceled' ? 'opacity-70 bg-red-50' : ''}">
+                    <div class="font-bold text-blue-600 text-lg mb-2">${index + 1}. ${roomName} ${statusBadge}</div>
                     <div class="text-sm text-gray-700">🕒 <strong>Nhận phòng:</strong> ${checkInStr}</div>
                     <div class="text-sm text-gray-700 mt-1">🕒 <strong>Trả phòng:</strong> ${checkOutStr}</div>
                     <div class="text-sm text-green-600 font-bold mt-2 pt-2 border-t border-gray-100">💰 Tổng tiền: ${total.toLocaleString()} VNĐ</div>
@@ -466,7 +514,10 @@ async function viewCustomerHistory(customerId) {
         historyRow.innerHTML = `
             <td colspan="4" class="p-4 border-b border-gray-200 shadow-inner">
                 <div class="flex justify-between items-center mb-3 px-2">
-                    <h4 class="font-bold text-gray-700 text-lg">Lịch sử đặt phòng</h4>
+                    <div>
+                        <h4 class="font-bold text-gray-700 text-lg">Lịch sử đặt phòng</h4>
+                        <p class="text-sm text-gray-600 mt-1">Tổng: <b>${totalBookings}</b> đơn | Thành công: <b class="text-green-600">${successBookings}</b> | Đã hủy: <b class="text-red-500">${canceledBookings}</b></p>
+                    </div>
                     <button onclick="document.getElementById('history-row-${customerId}').remove()" class="text-red-500 hover:text-red-700 font-bold text-sm">✖ Đóng box</button>
                 </div>
                 <div class="flex flex-col px-2">${historyHtml}</div>
@@ -485,18 +536,35 @@ async function viewCustomerHistory(customerId) {
 async function loadBookings() {
     const data = await fetch(`${API_URL}/bookings/all`).then(res => res.json());
     const tbody = document.getElementById('booking-table-body');
-    tbody.innerHTML = data.map(b => `
-        <tr class="tr-hover">
-            <td class="td-cell">${b.roomId?.roomNumber || 'N/A'}</td>
-            <td class="td-cell">${b.customerId?.name || 'N/A'}</td>
-            <td class="td-cell">${new Date(b.checkInDate).toLocaleDateString()}</td>
-            <td class="td-cell">${new Date(b.checkOutDate).toLocaleDateString()}</td>
-            <td class="td-cell space-x-2">
-                <button class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded text-sm transition-colors" onclick="editBooking('${b._id}', '${b.roomId?._id || ''}', '${b.customerId?._id || ''}', '${b.checkInDate}', '${b.checkOutDate}')">Sửa</button>
-                <button class="btn-danger-outline" onclick="deleteItem('bookings', '${b._id}')">Hủy Đặt</button>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = data.map(b => {
+        // Tính tổng tiền cho từng đơn đặt phòng
+        const checkIn = new Date(b.checkInDate);
+        const checkOut = new Date(b.checkOutDate);
+        checkIn.setHours(0, 0, 0, 0);
+        checkOut.setHours(0, 0, 0, 0);
+        const days = Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+        const price = b.roomId?.price || 0;
+        const totalCost = b.status === 'Canceled' ? 0 : (days > 0 ? days * price : 0);
+
+        return `
+            <tr class="tr-hover ${b.status === 'Canceled' ? 'opacity-60 bg-gray-50' : ''}">
+                <td class="td-cell">${b.roomId?.roomNumber || 'N/A'}</td>
+                <td class="td-cell">${b.customerId?.name || 'N/A'}</td>
+                <td class="td-cell">${new Date(b.checkInDate).toLocaleDateString('vi-VN')}</td>
+                <td class="td-cell">${new Date(b.checkOutDate).toLocaleDateString('vi-VN')}</td>
+                <td class="td-cell font-semibold text-green-600">${totalCost.toLocaleString()} VNĐ</td>
+                <td class="td-cell">
+                    ${b.status === 'Canceled' ? '<span class="badge-danger">Đã Hủy</span>' : '<span class="badge-success">Đang Hoạt Động</span>'}
+                </td>
+                <td class="td-cell space-x-2">
+                    ${b.status !== 'Canceled' ? `
+                    <button class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded text-sm transition-colors mb-1 md:mb-0" onclick="editBooking('${b._id}', '${b.roomId?._id || ''}', '${b.customerId?._id || ''}', '${b.checkInDate}', '${b.checkOutDate}')">Sửa</button>
+                    <button class="btn-danger-outline" onclick="cancelBooking('${b._id}', '${b.checkInDate}')">Hủy Đặt</button>
+                    ` : '<span class="text-xs text-gray-500 italic">Không thể thao tác</span>'}
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 async function editBooking(id, oldRoomId, oldCustomerId, oldCheckIn, oldCheckOut) {
@@ -684,7 +752,7 @@ async function createBooking(event) {
 
     if (checkOutValue <= checkInValue) {
         alert("Lỗi: Ngày trả phòng phải lớn hơn ngày nhận phòng ít nhất 1 ngày!");
-        return; 
+        return;  
     }
 
     const payload = {
@@ -699,6 +767,29 @@ async function createBooking(event) {
         body: JSON.stringify(payload)
     });
     if(res.ok) location.reload(); else alert("Lỗi đặt phòng!");
+}
+
+// --- HÀM HỦY ĐẶT PHÒNG CÓ RÀNG BUỘC THỜI GIAN ---
+async function cancelBooking(id, checkInDateStr) {
+    const checkIn = new Date(checkInDateStr);
+    const today = new Date();
+    checkIn.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    const daysDiff = Math.round((checkIn - today) / (1000 * 60 * 60 * 24));
+
+    let confirmMsg = '';
+    if (daysDiff <= 1) {
+        confirmMsg = '⚠️ QUY ĐỊNH HỦY PHÒNG SÁT GIỜ:\nĐơn này có ngày nhận phòng trong vòng 24h tới hoặc đã qua. Việc hủy sẽ áp dụng chính sách KHÔNG HOÀN CỌC (Trừ phí phạt).\n\nBạn có chắc chắn muốn hủy?';
+    } else {
+        confirmMsg = 'Khách hủy trước hạn an toàn. Đơn này có thể hủy miễn phí.\n\nBạn có chắc chắn muốn hủy?';
+    }
+
+    if (confirm(confirmMsg)) {
+        const res = await fetch(`${API_URL}/bookings/delete/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        alert(data.message);
+        if (res.ok) location.reload();
+    }
 }
 
 // --- HÀM XÓA CHUNG ---

@@ -1,6 +1,9 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import http from 'http';
+import { Server } from 'socket.io';
+import { createClient } from 'redis';
 import roomRoutes from './routes/roomRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
@@ -17,6 +20,35 @@ const PORT = process.env.PORT || 3000;
 app.use(cors()); // Mở cổng giao tiếp cho Frontend gọi API
 app.use(express.json()); // Dịch dữ liệu gửi lên dưới dạng JSON
 app.use(express.static('public'));
+
+// ==========================================
+// CẤU HÌNH HTTP SERVER, SOCKET.IO VÀ REDIS
+// ==========================================
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
+
+// Khởi tạo Redis Client
+const redisClient = createClient(); // Mặc định kết nối tới redis://localhost:6379
+redisClient.on('error', (err) => console.log('🔴 Lỗi Redis Client', err));
+redisClient.connect().then(() => {
+    console.log('🟢 Kết nối Redis Server thành công!');
+});
+
+// Lắng nghe kết nối Socket.io từ client
+io.on('connection', (socket) => {
+    console.log(`⚡ Một client vừa kết nối: ${socket.id}`);
+    socket.on('disconnect', () => {
+        console.log(`🔴 Client đã ngắt kết nối: ${socket.id}`);
+    });
+});
+
+// Middleware Inject io và redisClient vào request
+app.use((req, res, next) => {
+    req.io = io;
+    req.redisClient = redisClient;
+    next();
+});
+
 // ==========================================
 // KẾT NỐI MONGODB
 // ==========================================
@@ -58,6 +90,6 @@ app.get('/', (req, res) => {
 // ==========================================
 // KHỞI ĐỘNG SERVER
 // ==========================================
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
 });

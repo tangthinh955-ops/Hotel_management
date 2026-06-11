@@ -18,6 +18,11 @@ const bookingSchema = new mongoose.Schema({
     checkOutDate: { 
         type: Date, 
         required: true 
+    },
+    status: {
+        type: String,
+        enum: ['Active', 'Canceled'],
+        default: 'Active'
     }
 }, { timestamps: true });
 

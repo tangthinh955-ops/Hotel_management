@@ -17,7 +17,7 @@ const customerSchema = new mongoose.Schema({
     phone: { 
         type: String, 
         required: true,
-        match: [/^\d+$/, 'Số điện thoại chỉ được chứa chữ số']
+        match: [/^\d{10}$/, 'Số điện thoại phải bao gồm đúng 10 chữ số']
     }
 }, { timestamps: true });
 

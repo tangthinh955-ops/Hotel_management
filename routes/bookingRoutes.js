@@ -43,6 +43,20 @@ router.post('/create', async (req, res) => {
         room.status = 'Booked';
         await room.save(); // Lưu lại thay đổi vào bảng Room
 
+        // [THỰC CHIẾN] - Xóa Cache Redis để list phòng tự động cập nhật data mới
+        if (req.redisClient && req.redisClient.isReady) {
+            try {
+                await req.redisClient.del('all_rooms');
+            } catch (redisErr) {
+                console.log("🔴 Lỗi xóa cache Redis:", redisErr.message);
+            }
+        }
+
+        // [THỰC CHIẾN] - Bắn sự kiện Socket.io cho tất cả Admin đang online
+        if (req.io) {
+            req.io.emit('new_booking_alert', { roomNumber: room.roomNumber });
+        }
+
         res.status(201).json({ message: "Đặt phòng thành công!", booking: newBooking });
     } catch (error) {
         res.status(400).json({ message: "Lỗi tạo đơn đặt", error: error.message });
@@ -87,14 +101,20 @@ router.delete('/delete/:id', async (req, res) => {
         if (!booking) {
             return res.status(404).json({ message: "Không tìm thấy đơn đặt phòng" });
         }
+        if (booking.status === 'Canceled') {
+            return res.status(400).json({ message: "Đơn đặt phòng này đã bị hủy từ trước!" });
+        }
 
         // 2. Trả lại trạng thái phòng thành 'Available'
-        await Room.findByIdAndUpdate(booking.roomId, { status: 'Available' });
+        if (booking.roomId) {
+            await Room.findByIdAndUpdate(booking.roomId, { status: 'Available' });
+        }
 
-        // 3. Xóa đơn đặt phòng
-        await Booking.findByIdAndDelete(req.params.id);
+        // 3. Đánh dấu đơn là đã hủy (Soft Delete) thay vì xóa hẳn
+        booking.status = 'Canceled';
+        await booking.save();
 
-        res.status(200).json({ message: "Đã hủy đơn đặt và trả lại phòng trống!" });
+        res.status(200).json({ message: "Đã thao tác hủy đơn đặt thành công và trả lại phòng trống!" });
     } catch (error) {
         res.status(500).json({ message: "Lỗi khi hủy đơn", error: error.message });
     }
