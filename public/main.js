@@ -390,7 +390,7 @@ async function addCustomer(event) {
     if (res.ok) {
         location.reload();
     } else {
-        const errData = await res.json();
+        const errData = await res.json(); 
         alert(`Thất bại: ${errData.message}\nChi tiết: ${errData.error}`);
     }
 }

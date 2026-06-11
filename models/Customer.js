@@ -20,5 +20,5 @@ const customerSchema = new mongoose.Schema({
         match: [/^\d{10}$/, 'Số điện thoại phải bao gồm đúng 10 chữ số']
     }
 }, { timestamps: true });
-
+ 
 export default mongoose.model('Customer', customerSchema);

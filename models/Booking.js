@@ -25,5 +25,5 @@ const bookingSchema = new mongoose.Schema({
         default: 'Active'
     }
 }, { timestamps: true });
-
+ 
 export default mongoose.model('Booking', bookingSchema);
